@@ -1,0 +1,104 @@
+
+<%- include('../partials/header') %>
+<section class="chat-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>Contacts</h2>
+    </div>
+    <ul id="userList" class="user-list">
+      <% others.forEach(u => { %>
+        <li class="<%= selected === u.id ? 'active' : '' %>">
+          <a href="/chat?to=<%= u.id %>"><%= u.name %></a>
+        </li>
+      <% }) %>
+    </ul>
+    <% if (!others.length) { %>
+      <p class="muted small">No other users yet. Sign up another account in a different browser to start chatting.</p>
+    <% } %>
+  </aside>
+
+  <section class="chat-window">
+    <% if (selected) { %>
+      <% const selectedUser = others.find(o => o.id === selected); %>
+      <div class="chat-header">
+        <h2><%= selectedUser ? selectedUser.name : 'Conversation' %></h2>
+      </div>
+      <div id="messages" class="messages"></div>
+      <form id="sendForm" class="send-form">
+        <input id="messageInput" type="text" placeholder="Type a message..." autocomplete="off" />
+        <button class="btn primary" type="submit">Send</button>
+      </form>
+    <% } else { %>
+      <div class="empty-state">
+        <h2>Welcome!</h2>
+        <p>Select a contact to start chatting.</p>
+      </div>
+    <% } %>
+  </section>
+</section>
+
+<script>
+(function(){
+  const selected = "<%= selected || '' %>";
+  if (!selected) return;
+
+  const messagesEl = document.getElementById('messages');
+  const inputEl = document.getElementById('messageInput');
+  const formEl = document.getElementById('sendForm');
+
+  function el(tag, attrs={}, text='') {
+    const e = document.createElement(tag);
+    for (const [k,v] of Object.entries(attrs)) e.setAttribute(k,v);
+    if (text) e.textContent = text;
+    return e;
+  }
+
+  function formatTime(iso) {
+    const d = new Date(iso);
+    return d.toLocaleString();
+  }
+
+  async function loadMessages(scroll=true) {
+    const res = await fetch(`/api/messages/${selected}`);
+    const data = await res.json();
+    messagesEl.innerHTML = '';
+    data.forEach(m => {
+      const wrap = el('div', { class: `msg ${m.from === "<%= currentUser.id %>" ? "me" : "them"}` });
+      const bubble = el('div', { class: 'bubble' });
+      bubble.appendChild(el('div', { class: 'text' }, m.text));
+      bubble.appendChild(el('div', { class: 'time' }, formatTime(m.timestamp)));
+      wrap.appendChild(bubble);
+      messagesEl.appendChild(wrap);
+    });
+    if (scroll) messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  async function sendMessage(text) {
+    const res = await fetch(`/api/messages/${selected}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(()=>({error:'Failed'}));
+      alert(e.error || 'Failed to send');
+      return;
+    }
+    await loadMessages(true);
+  }
+
+  formEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = inputEl.value.trim();
+    if (!text) return;
+    inputEl.value = '';
+    await sendMessage(text);
+  });
+
+  // Poll for new messages every 2 seconds
+  loadMessages(true);
+  setInterval(loadMessages, 2000, false);
+})();
+</script>
+
+<%- include('../partials/footer') %>

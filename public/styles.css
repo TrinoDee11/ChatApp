@@ -1,0 +1,179 @@
+
+:root {
+  --bg: #0f172a;
+  --panel: #111827;
+  --card: #1f2937;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --primary: #22c55e;
+  --accent: #06b6d4;
+  --danger: #ef4444;
+  --border: #374151;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background: linear-gradient(180deg, #0b1220, #0f172a 30%);
+  color: var(--text);
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.row { display: flex; align-items: center; gap: 1rem; }
+
+.site-header {
+  border-bottom: 1px solid var(--border);
+  background: rgba(17,24,39,0.7);
+  backdrop-filter: blur(6px);
+  position: sticky; top: 0; z-index: 10;
+}
+
+.brand {
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 800;
+  font-size: 1.3rem;
+}
+.brand span { color: var(--accent); }
+
+nav .btn { margin-left: 0.5rem; }
+
+.btn {
+  display: inline-block;
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  background: var(--card);
+}
+.btn.primary { background: var(--primary); color: #0b1220; border-color: transparent; }
+.btn.outline { background: transparent; }
+.btn:active { transform: translateY(1px); }
+
+.hello { margin-right: 0.5rem; color: var(--muted); }
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  margin-top: 2rem;
+  color: var(--muted);
+}
+
+.auth-card {
+  max-width: 420px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.auth-card h1 { margin-top: 0; }
+.form { display: grid; gap: 0.75rem; }
+label { display: grid; gap: 0.35rem; font-size: 0.95rem; }
+input[type="text"], input[type="password"], input[type="email"] {
+  padding: 0.6rem 0.75rem;
+  background: #0b1220;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  outline: none;
+}
+input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(6,182,212,0.2); }
+
+.alert {
+  background: rgba(239,68,68,0.15);
+  border: 1px solid var(--danger);
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+}
+
+.muted { color: var(--muted); }
+.small { font-size: 0.9rem; }
+
+/* Chat layout */
+.chat-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+  min-height: calc(100vh - 180px);
+}
+
+.sidebar {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-header { padding: 0.9rem; border-bottom: 1px solid var(--border); }
+.user-list { list-style: none; margin: 0; padding: 0; }
+.user-list li a {
+  display: block; padding: 0.75rem 1rem; color: var(--text); text-decoration: none;
+  border-bottom: 1px solid var(--border);
+}
+.user-list li.active a, .user-list li a:hover { background: #0b1220; }
+
+.chat-window {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+}
+.chat-header { padding: 0.9rem 1rem; border-bottom: 1px solid var(--border); }
+.messages {
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: radial-gradient(50% 50% at 50% 50%, #0b1220 0%, #0f172a 100%);
+}
+.msg { display: flex; }
+.msg.me { justify-content: flex-end; }
+.msg.them { justify-content: flex-start; }
+.bubble {
+  max-width: 70%;
+  padding: 0.6rem 0.75rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #0b1220;
+}
+.msg.me .bubble { background: #052e1b; border-color: #0e4028; }
+.text { white-space: pre-wrap; }
+.time { font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; text-align: right; }
+
+.send-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  padding: 0.9rem;
+  border-top: 1px solid var(--border);
+  background: rgba(17,24,39,0.4);
+}
+.send-form input {
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #0b1220;
+  color: var(--text);
+}
+.empty-state { padding: 2rem; text-align: center; }
+@media (max-width: 800px) {
+  .chat-layout { grid-template-columns: 1fr; }
+  .sidebar { order: 2; }
+  .chat-window { order: 1; }
+}

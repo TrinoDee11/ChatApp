@@ -1,0 +1,25 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title><%= typeof title !== 'undefined' ? title : 'Chat App' %></title>
+  <link rel="stylesheet" href="/styles.css"/>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container row">
+      <a class="brand" href="/chat">Chat<span>Lite</span></a>
+      <nav>
+        <% if (typeof currentUser !== 'undefined' && currentUser) { %>
+          <span class="hello">Hello, <strong><%= currentUser.name %></strong></span>
+          <a class="btn" href="/logout">Logout</a>
+        <% } else { %>
+          <a class="btn" href="/login">Login</a>
+          <a class="btn outline" href="/register">Sign up</a>
+        <% } %>
+      </nav>
+    </div>
+  </header>
+  <main class="container">
