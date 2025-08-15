@@ -1,43 +1,106 @@
 
 <%- include('../partials/header') %>
-<section class="chat-layout">
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <h2>Contacts</h2>
+<section class="d-flex vh-100">
+  <!-- Sidebar -->
+  <aside class="d-flex flex-column border-end bg-white" style="width: 280px;">
+    <div class="p-3 border-bottom bg-light">
+      <h2 class="h5 mb-0 fw-semibold">Contacts</h2>
     </div>
-    <ul id="userList" class="user-list">
+    <ul id="userList" class="list-unstyled flex-grow-1 overflow-auto m-0 p-0">
       <% others.forEach(u => { %>
-        <li class="<%= selected === u.id ? 'active' : '' %>">
-          <a href="/chat?to=<%= u.id %>"><%= u.name %></a>
+        <li class="px-3 py-2 <%= selected === u.id ? 'active bg-light' : '' %>">
+          <a href="/chat?to=<%= u.id %>" class="d-block text-decoration-none text-dark">
+            <%= u.name %>
+          </a>
         </li>
       <% }) %>
     </ul>
     <% if (!others.length) { %>
-      <p class="muted small">No other users yet. Sign up another account in a different browser to start chatting.</p>
+      <div class="p-3 text-center">
+        <p class="text-muted small mb-0">No other users yet. Sign up another account in a different browser to start chatting.</p>
+      </div>
     <% } %>
   </aside>
 
-  <section class="chat-window">
+  <!-- Chat Window -->
+  <section class="flex-grow-1 d-flex flex-column <%= !selected ? 'align-items-center justify-content-center bg-light' : '' %>">
     <% if (selected) { %>
       <% const selectedUser = others.find(o => o.id === selected); %>
-      <div class="chat-header">
-        <h2><%= selectedUser ? selectedUser.name : 'Conversation' %></h2>
+      <div class="p-3 border-bottom bg-white">
+        <h2 class="h5 mb-0 fw-semibold"><%= selectedUser ? selectedUser.name : 'Conversation' %></h2>
       </div>
-      <div id="messages" class="messages"></div>
-      <form id="sendForm" class="send-form">
-        <input id="messageInput" type="text" placeholder="Type a message..." autocomplete="off" />
-        <button class="btn primary" type="submit">Send</button>
+      
+      <div id="messages" class="flex-grow-1 p-3 overflow-auto bg-light"></div>
+      
+      <form id="sendForm" class="p-3 bg-white border-top">
+        <div class="input-group">
+          <input id="messageInput" type="text" class="form-control rounded-start" 
+                 placeholder="Type a message..." autocomplete="off">
+          <button class="btn btn-primary rounded-end" type="submit">Send</button>
+        </div>
       </form>
     <% } else { %>
-      <div class="empty-state">
-        <h2>Welcome!</h2>
-        <p>Select a contact to start chatting.</p>
+      <div class="text-center p-4">
+        <h2 class="h4 mb-3 fw-semibold">Welcome!</h2>
+        <p class="text-muted">Select a contact to start chatting.</p>
       </div>
     <% } %>
   </section>
 </section>
 
+<style>
+  /* Custom styles to match the original message bubbles */
+  .msg {
+    margin-bottom: 1rem;
+  }
+  
+  .msg.me {
+    text-align: right;
+  }
+  
+  .msg.them {
+    text-align: left;
+  }
+  
+  .bubble {
+    display: inline-block;
+    max-width: 70%;
+    padding: 0.5rem 1rem;
+    border-radius: 1rem;
+    position: relative;
+  }
+  
+  .msg.me .bubble {
+    background-color: #34C759;
+    color: white;
+  }
+  
+  .msg.them .bubble {
+    background-color: white;
+    border: 1px solid #dee2e6;
+  }
+  
+  .time {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+  }
+  
+  .msg.me .time {
+    color: rgba(255,255,255,0.7);
+  }
+  
+  #userList li.active {
+    border-left: 3px solid #34C759;
+  }
+  
+  #userList li:hover {
+    background-color: #f8f9fa !important;
+  }
+</style>
+
 <script>
+// Original JavaScript remains completely unchanged
 (function(){
   const selected = "<%= selected || '' %>";
   if (!selected) return;
