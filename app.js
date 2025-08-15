@@ -1,8 +1,5 @@
 
-/**
- * Simple chat app with Node.js, Express, EJS, JWT (cookie-based auth), and file JSON storage.
- * Not production-ready (no CSRF, rate-limiting, etc.) but good for learning.
- */
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs').promises;
