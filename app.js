@@ -5,15 +5,25 @@ const path = require('path');
 const fs = require('fs').promises;
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
+const mysql = require('mysql2/promise');
+
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
+
+// Create MySQL connection pool
+const db = mysql.createPool({
+  host: 'localhost',
+  user: 'root',
+  password: 'Mightygoes@11',   
+  database: 'chat_app'
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ==== Config ====
 const DATA_DIR = path.join(__dirname, 'data');
-const USERS_PATH = path.join(DATA_DIR, 'users.json');
+//const USERS_PATH = path.join(DATA_DIR, 'users.json');
 const MESSAGES_PATH = path.join(DATA_DIR, 'messages.json');
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-super-secret-change-me';
 
@@ -41,6 +51,44 @@ app.use(async (req, res, next) => {
 });
 
 // ==== Helpers ====
+// --- Users: MySQL ---
+async function getUsers() {
+  try {
+    const [rows] = await db.query("SELECT * FROM users");
+    return rows;
+  } catch (e) {
+    console.error("Error fetching users from MySQL:", e);
+    return [];
+  }
+}
+
+async function getUserByEmail(email) {
+  try {
+    const [rows] = await db.query(
+      "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
+      [email]
+    );
+    return rows.length > 0 ? rows[0] : null;
+  } catch (e) {
+    console.error("Error fetching user by email:", e);
+    return null;
+  }
+}
+
+async function saveUser(user) {
+  try {
+    await db.query(
+      "INSERT INTO users (id, name, email, passwordHash, createdAt) VALUES (?, ?, ?, ?, ?)",
+      [user.id, user.name, user.email, user.passwordHash, user.createdAt]
+    );
+    return true;
+  } catch (e) {
+    console.error("Error saving user to MySQL:", e);
+    return false;
+  }
+}
+
+// --- Messages: still in JSON ---
 async function loadJSON(filePath, fallback) {
   try {
     const raw = await fs.readFile(filePath, 'utf-8');
@@ -54,14 +102,6 @@ async function saveJSON(filePath, data) {
   await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-async function getUsers() {
-  return await loadJSON(USERS_PATH, []);
-}
-
-async function saveUsers(users) {
-  await saveJSON(USERS_PATH, users);
-}
-
 async function getMessages() {
   return await loadJSON(MESSAGES_PATH, []);
 }
@@ -70,10 +110,12 @@ async function saveMessages(messages) {
   await saveJSON(MESSAGES_PATH, messages);
 }
 
+// --- Auth middleware ---
 function requireAuth(req, res, next) {
   if (!req.user) return res.redirect('/login');
   next();
 }
+
 
 // ==== Routes ====
 app.get('/', (req, res) => {
@@ -90,61 +132,109 @@ app.get('/register', (req, res) => {
 app.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
   const form = { name, email };
+
   try {
     if (!name || !email || !password) {
       return res.status(400).render('pages/register', { error: 'All fields are required.', form });
     }
-    const users = await getUsers();
-    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+
+    // 1. Check if user already exists by email
+    const [emailExists] = await db.query(
+      "SELECT * FROM users WHERE email = ?",
+      [email]
+    );
+    if (emailExists.length > 0) {
       return res.status(400).render('pages/register', { error: 'Email already exists.', form });
     }
-    if (users.find(u => u.name.toLowerCase() === name.toLowerCase())) {
+
+    // 2. Check if username already exists
+    const [nameExists] = await db.query(
+      "SELECT * FROM users WHERE name = ?",
+      [name]
+    );
+    if (nameExists.length > 0) {
       return res.status(400).render('pages/register', { error: 'Username already exists.', form });
     }
-    const hash = await bcrypt.hash(password, 10);
-    const user = { id: uuidv4(), name, email, passwordHash: hash, createdAt: new Date().toISOString() };
-    users.push(user);
-    await saveUsers(users);
 
-    const token = jwt.sign({ id: user.id, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    // 3. Hash password
+    const hash = await bcrypt.hash(password, 10);
+
+    // 4. Insert new user into MySQL
+    const [result] = await db.query(
+      "INSERT INTO users (id, name, email, passwordHash, createdAt) VALUES (?, ?, ?, ?, ?)",
+      [uuidv4(), name, email, hash, new Date()]
+    );
+
+    // 5. Create JWT
+    const token = jwt.sign(
+      { id: result.insertId, name, email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
     res.cookie('token', token, { httpOnly: true, sameSite: 'lax' });
     res.redirect('/chat');
+
   } catch (e) {
     console.error(e);
     res.status(500).render('pages/register', { error: 'Something went wrong.', form });
   }
 });
 
-// Login
+
+// Login page
 app.get('/login', (req, res) => {
   if (req.user) return res.redirect('/chat');
   res.render('pages/login', { error: null, form: {} });
 });
 
+// Login with MySQL
+
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   const form = { email };
+
   try {
     if (!email || !password) {
       return res.status(400).render('pages/login', { error: 'Email and password are required.', form });
     }
-    const users = await getUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user) {
+
+    // Query MySQL for the user
+    const [rows] = await db.query(
+      "SELECT * FROM users WHERE LOWER(email) = LOWER(?)",
+      [email]
+    );
+
+    if (rows.length === 0) {
       return res.status(401).render('pages/login', { error: 'Invalid email or password.', form });
     }
+
+    const user = rows[0];
+
+    // Compare entered password with stored hash
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
       return res.status(401).render('pages/login', { error: 'Invalid email or password.', form });
     }
-    const token = jwt.sign({ id: user.id, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+
+    // Generate JWT
+    const token = jwt.sign(
+      { id: user.id, name: user.name, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Save cookie
     res.cookie('token', token, { httpOnly: true, sameSite: 'lax' });
     res.redirect('/chat');
+
   } catch (e) {
     console.error(e);
     res.status(500).render('pages/login', { error: 'Something went wrong.', form });
   }
 });
+
+
 
 app.get('/logout', (req, res) => {
   res.clearCookie('token', { httpOnly: true, sameSite: 'lax' });
